@@ -1,0 +1,17 @@
+# docker-compose.yml
+# ------------------------------------
+# รันเฉพาะ Next.js ให้เชื่อมกับ n8n ที่มีอยู่แล้ว
+# ------------------------------------
+version: "3.9"
+
+services:
+  # 🧠 Next.js App (AI Image Edit)
+  ai-image-edit:
+    build: .
+    container_name: ai-image-edit
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # ✅ ชี้ไปยัง n8n ที่รันอยู่แล้ว (เช่น n8n Docker หรือ n8n Cloud)
+      - N8N_WEBHOOK_URL=http://host.docker.internal:5678/webhook/prompt0

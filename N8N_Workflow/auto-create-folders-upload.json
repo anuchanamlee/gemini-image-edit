@@ -1,0 +1,1094 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1a7b2458-ede4-4078-afbb-162fa9b6c325",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {
+          "ignoreCase": true
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -208,
+        -96
+      ],
+      "id": "71905690-05d7-4751-87d6-6c096b218827",
+      "name": "If",
+      "alwaysOutputData": false,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "name": "={{ $('set data').item.json.user }}",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "YOUR_DRIVE_FOLDER_ID",
+          "mode": "list",
+          "cachedResultName": "image_log",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/YOUR_DRIVE_FOLDER_ID"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        64,
+        -112
+      ],
+      "id": "f914f39e-1561-417b-a36e-8a8a96f98e34",
+      "name": "ชื่อUSER"
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "name": "={{ new Date().toLocaleString(\"sv-SE\", { timeZone: \"Asia/Bangkok\" }).split(\" \")[0] }}\n",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('ชื่อUSER').item.json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        288,
+        -112
+      ],
+      "id": "e67ad0c1-507e-4bd5-8a7e-f879068bba8e",
+      "name": "สร้างไฟล์วันที่"
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "name": "={{ $('set data').item.json.task }}",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('สร้างไฟล์วันที่').item.json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        528,
+        -112
+      ],
+      "id": "ea12a92f-2480-4827-baa8-0e328969146b",
+      "name": "สร้างโฟลเดอร์task"
+    },
+    {
+      "parameters": {
+        "name": "={{ new Date().toLocaleString(\"sv-SE\", { timeZone: \"Asia/Bangkok\" }).replace(\":\", \"-\").replace(\" \", \"_\") }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Edit Fields2').item.json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        992,
+        576
+      ],
+      "id": "14b1f0c1-726d-4e03-abc5-9acffdcaeb09",
+      "name": "Upload file",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "name": "={{ new Date().toLocaleString(\"sv-SE\", { timeZone: \"Asia/Bangkok\" }).replace(\":\", \"-\").replace(\" \", \"_\") }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Edit Fields1').item.json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1184,
+        -112
+      ],
+      "id": "6d194b46-716f-4978-ae9b-9e0128588ba6",
+      "name": "Upload file1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ed243f4e-1d11-4b86-8288-1ff54278abe0",
+              "name": "id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "43cc3fb3-b860-4dec-9ae8-f25c19028b6a",
+              "name": "file ",
+              "value": "={{ $('set data').item.json['file '] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        768,
+        -112
+      ],
+      "id": "211add9d-4ea3-4f38-a218-0f6367b2c267",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "file ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        976,
+        -112
+      ],
+      "id": "84635d88-538b-452e-863e-8b17bf3de2bd",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ed243f4e-1d11-4b86-8288-1ff54278abe0",
+              "name": "id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "43cc3fb3-b860-4dec-9ae8-f25c19028b6a",
+              "name": "file ",
+              "value": "={{ $('set data').item.json['file '] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        592,
+        576
+      ],
+      "id": "de3ed7ff-8c1f-4712-930e-faafbe947163",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "file ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        800,
+        576
+      ],
+      "id": "4bf44889-e4e9-42b2-828c-84f00e1dccbb",
+      "name": "Convert to File1"
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "queryString": "={{ new Date().toLocaleString(\"sv-SE\", { timeZone: \"Asia/Bangkok\" }).split(\" \")[0] }}",
+        "returnAll": true,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "={{ $json.id }}",
+            "mode": "id"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -368,
+        160
+      ],
+      "id": "80722ad9-30b9-4612-b08f-106817bb953a",
+      "name": "หาวันที่",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1a7b2458-ede4-4078-afbb-162fa9b6c325",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {
+          "ignoreCase": true
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -160,
+        160
+      ],
+      "id": "d2cac33a-87f6-4ff0-a55d-a7b423324d25",
+      "name": "If3",
+      "alwaysOutputData": false,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "=name = '{{ $('set data').item.json.task }}' and mimeType = 'application/vnd.google-apps.folder'",
+        "returnAll": true,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "={{ $json.id }}",
+            "mode": "id"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        48,
+        560
+      ],
+      "id": "46614452-0550-4c2a-8517-fc45d560f484",
+      "name": "หาโฟลเดอร์ task_1",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1a7b2458-ede4-4078-afbb-162fa9b6c325",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {
+          "ignoreCase": true
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        320,
+        560
+      ],
+      "id": "0a898bb9-5604-4e49-9df1-98b4b5158305",
+      "name": "If4",
+      "alwaysOutputData": false,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "name": "={{ new Date().toLocaleString(\"sv-SE\", { timeZone: \"Asia/Bangkok\" }).split(\" \")[0] }}",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('If').item.json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        64,
+        144
+      ],
+      "id": "c8379222-e5f3-4024-9bba-89a40d6b92d1",
+      "name": "สร้างไฟล์วันที่1"
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "name": "={{ $('set data').item.json.task }}",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('สร้างไฟล์วันที่1').item.json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        288,
+        144
+      ],
+      "id": "a353cd52-be40-4fe9-ab2e-41175a336166",
+      "name": "สร้างโฟลเดอร์task1"
+    },
+    {
+      "parameters": {
+        "name": "={{ new Date().toLocaleString(\"sv-SE\", { timeZone: \"Asia/Bangkok\" }).replace(\":\", \"-\").replace(\" \", \"_\") }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Edit Fields3').item.json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        944,
+        144
+      ],
+      "id": "a1250579-e95f-416d-a5e6-2061ef597593",
+      "name": "Upload file2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ed243f4e-1d11-4b86-8288-1ff54278abe0",
+              "name": "id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "43cc3fb3-b860-4dec-9ae8-f25c19028b6a",
+              "name": "file ",
+              "value": "={{ $('set data').item.json['file '] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        528,
+        144
+      ],
+      "id": "63c017b0-c287-4c48-920a-47a4031e33f0",
+      "name": "Edit Fields3"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "file ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        736,
+        144
+      ],
+      "id": "b32263a1-58e6-43df-baa5-49dc750757ac",
+      "name": "Convert to File2"
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "name": "={{ $('set data').item.json.task }}",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('If3').item.json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        592,
+        432
+      ],
+      "id": "bd766092-7b0b-416a-b76d-a92e3e3721ed",
+      "name": "สร้างโฟลเดอร์task2"
+    },
+    {
+      "parameters": {
+        "name": "={{ new Date().toLocaleString(\"sv-SE\", { timeZone: \"Asia/Bangkok\" }).replace(\":\", \"-\").replace(\" \", \"_\") }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Edit Fields4').item.json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1360,
+        432
+      ],
+      "id": "300f644f-c173-47df-8de1-14a7324b7f21",
+      "name": "Upload file3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ed243f4e-1d11-4b86-8288-1ff54278abe0",
+              "name": "id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "43cc3fb3-b860-4dec-9ae8-f25c19028b6a",
+              "name": "file ",
+              "value": "={{ $('set data').item.json['file '] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        816,
+        432
+      ],
+      "id": "da045759-0577-4796-92ae-1b4b9397d6b4",
+      "name": "Edit Fields4"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "file ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        1072,
+        432
+      ],
+      "id": "fb26e298-ea48-40aa-9ef8-9d2dbeaa51c1",
+      "name": "Convert to File3"
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "=name = '{{ $json.user }}' and mimeType = 'application/vnd.google-apps.folder'",
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "YOUR_DRIVE_FOLDER_ID",
+            "mode": "list",
+            "cachedResultName": "image_log",
+            "cachedResultUrl": "https://drive.google.com/drive/folders/YOUR_DRIVE_FOLDER_ID"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -416,
+        -96
+      ],
+      "id": "8906a753-20d2-42b1-ada5-8a096442701d",
+      "name": "Search files and folders",
+      "alwaysOutputData": true,
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"webViewLink\": \"{{ $json.webViewLink }}\"\n}\n",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1536,
+        432
+      ],
+      "id": "47db2eb2-b275-4a9c-82c3-ea1f517bdffb",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"webViewLink\": \"{{ $json.webViewLink }}\"\n}\n",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1216,
+        144
+      ],
+      "id": "d78fcd9a-a68d-4e04-b6e6-4166b0facedb",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"webViewLink\": \"{{ $json.webViewLink }}\"\n}\n",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1488,
+        -112
+      ],
+      "id": "5d85a927-2959-4f64-a291-2e1ed4cd1473",
+      "name": "Respond to Webhook2"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"webViewLink\": \"{{ $json.webViewLink }}\"\n}\n",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1248,
+        576
+      ],
+      "id": "4c5be6e9-54ea-49d2-8d32-82b8c37c67f7",
+      "name": "Respond to Webhook3"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "uploadfile",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1232,
+        -96
+      ],
+      "id": "6bf2a85a-514d-45a9-bf7b-577ce3f581b8",
+      "name": "🟢 WEBHOOK สำหรับ Upload",
+      "webhookId": "REPLACE_WITH_YOUR_WEBHOOK_ID"
+    },
+    {
+      "parameters": {
+        "content": "## เพิ่ม Credential ของ google drive \n",
+        "height": 1152,
+        "width": 2400
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -640,
+        -384
+      ],
+      "id": "d0e4aa65-7c62-409a-85ee-8d95417a47f8",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Copy URL 🟢 WEBHOOK สำหรับ Upload \n  แล้วไปแก้ไขที่Node  Upload ในworkflow ระบบตรวจสอบสิทธิ์ + พรีเซ็ตข้อความ + Gemini image edit + การบันทึก log ลง Google Sheet + การตอบกลับ webhook",
+        "height": 496,
+        "width": 672
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1584,
+        -288
+      ],
+      "id": "8e7dcb4a-8ec9-4ed6-bfb8-3f38c42c22cb",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "bb41c9f9-8fba-4676-8667-f3ef75e36c06",
+              "name": "user",
+              "value": "={{ $json.body.user }}",
+              "type": "string"
+            },
+            {
+              "id": "05cdb6b5-f8c0-44c3-8914-f300556aa35a",
+              "name": "task",
+              "value": "={{ $json.body.task }}",
+              "type": "string"
+            },
+            {
+              "id": "4960b7b3-c476-4c48-9abd-240115cc7579",
+              "name": "file ",
+              "value": "={{ $json.body.file }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -832,
+        -96
+      ],
+      "id": "864eebb3-4e7d-4c6b-ba5d-8ee887590a91",
+      "name": "set data"
+    }
+  ],
+  "connections": {
+    "If": {
+      "main": [
+        [
+          {
+            "node": "ชื่อUSER",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "หาวันที่",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ชื่อUSER": {
+      "main": [
+        [
+          {
+            "node": "สร้างไฟล์วันที่",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "สร้างไฟล์วันที่": {
+      "main": [
+        [
+          {
+            "node": "สร้างโฟลเดอร์task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "สร้างโฟลเดอร์task": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload file": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload file1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Upload file1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Convert to File1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File1": {
+      "main": [
+        [
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "หาวันที่": {
+      "main": [
+        [
+          {
+            "node": "If3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If3": {
+      "main": [
+        [
+          {
+            "node": "สร้างไฟล์วันที่1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "หาโฟลเดอร์ task_1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "หาโฟลเดอร์ task_1": {
+      "main": [
+        [
+          {
+            "node": "If4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If4": {
+      "main": [
+        [
+          {
+            "node": "สร้างโฟลเดอร์task2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "สร้างไฟล์วันที่1": {
+      "main": [
+        [
+          {
+            "node": "สร้างโฟลเดอร์task1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "สร้างโฟลเดอร์task1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload file2": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields3": {
+      "main": [
+        [
+          {
+            "node": "Convert to File2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File2": {
+      "main": [
+        [
+          {
+            "node": "Upload file2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "สร้างโฟลเดอร์task2": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload file3": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields4": {
+      "main": [
+        [
+          {
+            "node": "Convert to File3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File3": {
+      "main": [
+        [
+          {
+            "node": "Upload file3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search files and folders": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🟢 WEBHOOK สำหรับ Upload": {
+      "main": [
+        [
+          {
+            "node": "set data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "set data": {
+      "main": [
+        [
+          {
+            "node": "Search files and folders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": ""
+  }
+}

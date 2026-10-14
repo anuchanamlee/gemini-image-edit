@@ -1,0 +1,409 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "เพิ่มผู้ใช้งาน",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "ชื่อ",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "จำนวนการใช้งาน",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Note"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.3,
+      "position": [
+        -240,
+        16
+      ],
+      "id": "5ff39f77-0b8f-4f6b-a53a-ded60b47c156",
+      "name": "On form submission",
+      "webhookId": "REPLACE_WITH_YOUR_WEBHOOK_ID"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "n8n_gemini_image_upload_log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "ชีต1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "user_id": "={{ $('On form submission').item.json['ชื่อ'] }}",
+            "api_key": "={{ $('On form submission').item.json['ชื่อ'] }}_{{ Math.random().toString(36).substring(2,10) + Date.now().toString(36) }}",
+            "limit": "={{ $('On form submission').item.json['จำนวนการใช้งาน'] }}",
+            "used": "0",
+            "date_created": "={{ new Date().toLocaleDateString(\"sv-SE\", { timeZone: \"Asia/Bangkok\" }) }}",
+            "date_last_used": "={{ new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString(\"sv-SE\", { timeZone: \"Asia/Bangkok\" }) }}",
+            "is_active": "TRUE",
+            "note": "={{ $('On form submission').item.json.Note }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "api_key",
+              "displayName": "api_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "limit",
+              "displayName": "limit",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "used",
+              "displayName": "used",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date_created",
+              "displayName": "date_created",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date_last_used",
+              "displayName": "date_last_used",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is_active",
+              "displayName": "is_active",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "note",
+              "displayName": "note",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        736,
+        0
+      ],
+      "id": "a3476991-807c-4043-9411-e6ab4f80a733",
+      "name": "Append row in sheet"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "n8n_gemini_image_upload_log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "ชีต1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "user_id",
+              "lookupValue": "={{ $json['ชื่อ'] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        144,
+        16
+      ],
+      "id": "43f18476-486e-48ee-a0e8-8ad56a883eb1",
+      "name": "Get row(s) in sheet",
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "982ea5d2-72e5-4d71-a83e-563b44291a93",
+              "leftValue": "={{ $json.user_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "388b7015-f65f-43fc-8e4c-f8873e10d4ae",
+              "leftValue": "={{ $json.row_number }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        384,
+        16
+      ],
+      "id": "14c597a6-a2c7-4b47-9e61-9d394bf9ec27",
+      "name": "If",
+      "executeOnce": true,
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "errorMessage": "=ชื่อผู้ใช้ซ้ำ กรุณากรอกข้อมูลใหม่"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        736,
+        176
+      ],
+      "id": "a030d160-58db-4755-b334-ca3e6eba67f6",
+      "name": "Stop and Error"
+    },
+    {
+      "parameters": {
+        "content": "## เพิ่มผู้ใช้งาน\n**",
+        "height": 560,
+        "width": 1520
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -352,
+        -160
+      ],
+      "id": "cd5a2318-e7a1-4649-b8f6-b85417695afa",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "operation": "clear",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "n8n_gemini_image_upload_log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "ชีต1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+        },
+        "clear": "specificRange",
+        "range": "D2:D"
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        96,
+        640
+      ],
+      "id": "c9ec8514-68da-47cd-a0a5-7614d49fe4d0",
+      "name": "Clear sheet"
+    },
+    {
+      "parameters": {
+        "content": "## รีเซ็ตจำนวนการใช้งานของทุกคน\n**Double click** to edit me. [Guide](https://docs.n8n.io/workflows/sticky-notes/)",
+        "height": 464,
+        "width": 736
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -352,
+        480
+      ],
+      "id": "e8a7b6a1-9082-4763-b467-c392cc7b6577",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 23,
+              "triggerAtMinute": 59
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -192,
+        640
+      ],
+      "id": "228e4549-e37e-4db6-8b63-9177a7a7bf49",
+      "name": "Schedule Trigger (14:30 ไทย)"
+    },
+    {
+      "parameters": {
+        "html": "<!DOCTYPE html>\n<html lang=\"th\">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>✅ เพิ่มผู้ใช้งานสำเร็จ</title>\n  <style>\n    body {\n      font-family: \"Segoe UI\", sans-serif;\n      background: #f4f6f9;\n      padding: 40px;\n      text-align: center;\n      color: #333;\n    }\n    .card {\n      display: inline-block;\n      background: white;\n      border-radius: 16px;\n      box-shadow: 0 4px 20px rgba(0,0,0,0.1);\n      padding: 24px 40px;\n      max-width: 480px;\n      text-align: left;\n      animation: fadeIn 0.6s ease;\n    }\n    h1 {\n      color: #2ecc71;\n      font-size: 1.6rem;\n      text-align: center;\n    }\n    table {\n      width: 100%;\n      border-collapse: collapse;\n      margin-top: 20px;\n    }\n    td {\n      padding: 8px 0;\n      border-bottom: 1px solid #eee;\n    }\n    td:first-child {\n      color: #777;\n      width: 40%;\n    }\n    .footer {\n      margin-top: 20px;\n      font-size: 0.9rem;\n      color: #888;\n      text-align: center;\n    }\n    @keyframes fadeIn {\n      from { opacity: 0; transform: translateY(10px); }\n      to { opacity: 1; transform: translateY(0); }\n    }\n  </style>\n</head>\n<body>\n  <div class=\"card\">\n    <h1>✅ เพิ่มผู้ใช้งานเรียบร้อยแล้ว</h1>\n    <table>\n      <tr><td><b>👤 ชื่อผู้ใช้</b></td><td>{{ $json.user_id }}</td></tr>\n      <tr><td><b>🔑 API Key</b></td><td><code>{{ $json.api_key }}</code></td></tr>\n      <tr><td><b>📊 Limit</b></td><td>{{ $json.limit }}</td></tr>\n      <tr><td><b>📈 Used</b></td><td>{{ $json.used }}</td></tr>\n      <tr><td><b>📅 วันที่สร้าง</b></td><td>{{ $json.date_created }}</td></tr>\n      <tr><td><b>⏳ หมดอายุ</b></td><td>{{ $json.date_last_used }}</td></tr>\n      <tr><td><b>⚙️ สถานะ</b></td><td>{{ $json.is_active }}</td></tr>\n      <tr><td><b>📝 Note</b></td><td>{{ $json.note }}</td></tr>\n    </table>\n    <div class=\"footer\">\n      <p>📁 ข้อมูลนี้ถูกบันทึกใน Google Sheet เรียบร้อยแล้ว</p>\n    </div>\n  </div>\n</body>\n</html>\n"
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        944,
+        0
+      ],
+      "id": "32363577-2085-46f6-bda8-bb01acb35d7a",
+      "name": "HTML"
+    }
+  ],
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stop and Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger (14:30 ไทย)": {
+      "main": [
+        [
+          {
+            "node": "Clear sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": ""
+  }
+}

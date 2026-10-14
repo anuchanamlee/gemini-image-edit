@@ -1,0 +1,1177 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "prompt0",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -2304,
+        1792
+      ],
+      "id": "54d0c209-aecc-4ef6-8047-82c301c6d40b",
+      "name": "🟢 รับคำขอจากผู้ใช้ (Webhook)",
+      "webhookId": "REPLACE_WITH_YOUR_WEBHOOK_ID",
+      "notesInFlow": true,
+      "notes": "จุดเริ่มต้นของ workflow — รอรับ prompt, image, และ Authorization header จาก client"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ✅ รับ item แรกจาก Webhook\nconst item = $input.first() || { json: {}, binary: {} };\nconst headers = item.json.headers || {};\n\n// ✅ ดึง Authorization header (รองรับทั้งตัวเล็ก/ใหญ่)\nconst authHeader = headers.authorization || headers.Authorization;\n\n// ✅ ยก prompt จาก body มาไว้บนสุด (จะได้เรียกใช้ {{$json.prompt}} ได้ทุกที่)\nconst prompt = (item.json.body?.prompt ?? \"\").toString().trim();\n\n// ✅ หา field ชื่อ binary อัตโนมัติ (เช่น \"data\" หรือ \"image\")\nconst binaryField = Object.keys(item.binary || {})[0] || null;\n\n// ❗ ถ้าไม่ส่ง Authorization มา → ตอบ error แต่ยังพก binary ต่อให้ด้วย\nif (!authHeader) {\n  return [{\n    json: {\n      success: false,\n      status: 401,\n      message: 'หา Authorization header ไม่เจอ',\n      prompt,       // เผื่ออยากตรวจในภายหลัง\n      binaryField,  // บอกชื่อฟิลด์ binary ที่แนบมา\n    },\n    binary: item.binary, // สำคัญ! พกไฟล์ภาพต่อ\n  }];\n}\n\n// ✂️ ตัดคำว่า Bearer ออก แล้ว trim\nconst key = authHeader.replace(/^Bearer\\s+/i, \"\").trim();\n\n// ✅ คืนค่า key + prompt + binaryField และพก binary ต่อ\nreturn [{\n  json: {\n    success: true,\n    key,\n    prompt,       // ใช้ต่อใน node ถัดไป: {{ $json.prompt }}\n    binaryField,  // ใช้ตั้งค่า Binary property ในโมเดลภาพ ถ้าต้อง\n  },\n  binary: item.binary, // สำคัญ! พกไฟล์ภาพต่อ\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1120,
+        1792
+      ],
+      "id": "d548a597-d247-4e5e-b394-1c7152d3650a",
+      "name": "แยกข้อมูล & ตรวจสอบ Header",
+      "notesInFlow": true,
+      "notes": "ดึง Authorization header ออกมา, แยก prompt และแนบ binary ไฟล์ต่อไป"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "n8n_gemini_image_upload_log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "ชีต1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "api_key",
+              "lookupValue": "={{ $json.key }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -864,
+        1712
+      ],
+      "id": "c50d35ad-c03e-4725-aeaa-40089450e76f",
+      "name": "ค้นหา API key ใน Google Sheet",
+      "alwaysOutputData": true,
+      "notesInFlow": true,
+      "notes": "ตรวจสอบว่ามี API key ในฐานข้อมูลหรือไม่"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ✅ รับข้อมูลจาก node ก่อนหน้า (Google Sheet)\nconst item = $input.first();\nconst row = item.json || {};\nconst key = $json.key || row.api_key; // เผื่อรับ key จาก node ก่อนหน้า\n\n// ✅ ตัวแปรพื้นฐาน\nlet success = false;\nlet message = \"\";\nlet reason = \"\";\n\n// ✅ ตรวจสอบว่าพบข้อมูลในชีตหรือไม่\nif (!row.api_key) {\n  success = false;\n  message = \"ไม่พบ API key ในระบบ\";\n  reason = \"not_found\";\n}\n\n// ✅ ตรวจสอบว่า key ตรงกันไหม\nelse if (String(row.api_key).trim() !== String(key).trim()) {\n  success = false;\n  message = \"API key ไม่ถูกต้อง\";\n  reason = \"invalid_key\";\n}\n\n// ✅ ตรวจสอบสถานะ active\nelse if (\n  row.is_active === false ||\n  row.is_active === \"FALSE\" ||\n  row.is_active === \"false\" ||\n  row.is_active === 0\n) {\n  success = false;\n  message = \"API key ถูกระงับการใช้งาน\";\n  reason = \"inactive\";\n}\n\n// ✅ ตรวจสอบจำนวนการใช้งาน (limit)\nelse {\n  const used = Number(row.used || 0);\n  const limit = Number(row.limit || 0);\n\n  if (used >= limit) {\n    success = false;\n    message = `เกินจำนวนการใช้งานที่กำหนด (${limit} ครั้ง)`;\n    reason = \"limit_exceeded\";\n  } else {\n    success = true;\n    message = \"ตรวจสอบสิทธิ์สำเร็จ สามารถใช้งานได้\";\n    reason = \"ok\";\n  }\n}\n\n// ✅ สร้างผลลัพธ์เพื่อนำไปใช้งานต่อ\nreturn [\n  {\n    json: {\n      success,\n      message,\n      reason,\n      current_used: row.used,\n      current_limit: row.limit,\n      date_last_used: row.date_last_used,\n      key_checked: key,\n      ...row,\n    },\n  },\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -688,
+        1712
+      ],
+      "id": "c8dac455-4d1f-4851-b2c4-cb5231a25fee",
+      "name": "ตรวจสอบสิทธิ์การใช้งาน API key",
+      "notesInFlow": true,
+      "notes": "key\nตรวจสอบ key, limit, active status, และวัน reset"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a092efae-2772-4ec7-bb28-fff388812891",
+              "leftValue": "={{ $json.success }}",
+              "rightValue": "false",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -528,
+        1712
+      ],
+      "id": "e12f8175-d0fe-46ca-b2b2-3108313a4e90",
+      "name": "เงื่อนไข: ผ่านหรือไม่ผ่านการตรวจสอบ",
+      "notesInFlow": true,
+      "notes": "ตรวจสอบ\nแยกเส้นทาง ถ้าไม่ผ่าน → ตอบกลับ 403 / ถ้าผ่าน → ไปต่อ"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"success\": false,\n  \"status\": 403,\n  \"message\": \"ไม่มีสิทธิ์เข้าถึงระบบ กรุณาตรวจสอบ API key\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1344,
+        1728
+      ],
+      "id": "85aef20e-f677-45ac-a4f4-080d268799d4",
+      "name": "ตอบกลับเมื่อไม่ผ่านการตรวจสอบ (403)",
+      "notesInFlow": true,
+      "notes": "ส่ง JSON แจ้งผู้ใช้ว่าไม่มีสิทธิ์ใช้งาน"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "n8n_gemini_image_upload_log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "ชีต1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "",
+            "used": "={{ $('ตรวจสอบสิทธิ์การใช้งาน API key').item.json.used +1 }}",
+            "api_key": "={{ $json.api_key }}"
+          },
+          "matchingColumns": [
+            "api_key"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "api_key",
+              "displayName": "api_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "limit",
+              "displayName": "limit",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "used",
+              "displayName": "used",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date_created",
+              "displayName": "date_created",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date_last_used",
+              "displayName": "date_last_used",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "limit_reset_date",
+              "displayName": "limit_reset_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "is_active",
+              "displayName": "is_active",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "note",
+              "displayName": "note",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -256,
+        1696
+      ],
+      "id": "6a099752-85de-4625-b82f-b3c53ee7b010",
+      "name": "อัปเดตจำนวนการใช้งานใน Google Sheet",
+      "notesInFlow": true,
+      "notes": "เพิ่มค่า used +1 และบันทึกวันที่ล่าสุด"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3a7f08c7-7796-46de-bf3a-d43ae08b7edb",
+              "name": "data",
+              "value": "data",
+              "type": "binary"
+            },
+            {
+              "id": "2c80f063-243c-4095-a6d9-5b58b322ce00",
+              "name": "prompt",
+              "value": "={{ $json.prompt }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -864,
+        1904
+      ],
+      "id": "85378156-59f1-4542-aede-f20748850702",
+      "name": "จัดเตรียมข้อมูล prompt และ binary สำหรับประมวลผล",
+      "notesInFlow": true,
+      "notes": "รวมค่า prompt และ binary เพื่อส่งต่อให้ Gemini"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -128,
+        1888
+      ],
+      "id": "b552e1d6-fbca-4223-a942-36edeb2f35f2",
+      "name": "รวมข้อมูล Key + Prompt + Binary",
+      "notesInFlow": true,
+      "notes": "รวมข้อมูลจากฝั่งสิทธิ์และฝั่งไฟล์เข้าด้วยกันก่อนประมวลผล"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        112,
+        1888
+      ],
+      "id": "118c655c-5f10-410f-b1f7-823c3b440c5e",
+      "name": "วนประมวลผลแต่ละภาพ (Batch)",
+      "notes": "ใช้ประมวลผลหลายรายการของภาพพร้อมกัน"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 🧩 พรีเซ็ตข้อความ\nconst presetA = 'Make the image look like a professional studio portrait. Improve lighting, add soft shadows, enhance clarity and natural skin tones. Keep background clean and slightly blurred.';\nconst presetB = 'Transform the image into a fantasy-style scene. Add glowing particles, vibrant colors, and cinematic lighting. Maintain the main subject but change the atmosphere to magical or surreal.';\nconst presetC = 'Convert the image into an artistic painting style. Add brush texture, balanced tones, and enhance visual composition for a gallery-ready look.';\n\n// 🧠 ฟังก์ชันเลือกข้อความพรีเซ็ต\nfunction resolvePrompt(raw) {\n  const t = String(raw ?? '').trim().toUpperCase();\n  if (['A', '1', 'PROMPTA', 'PRESET1', 'แบบที่A', 'แบบที่1'].includes(t)) \n    return { prompt: presetA, type: 'A' };\n  if (['B', '2', 'PROMPTB', 'PRESET2', 'แบบที่B', 'แบบที่2'].includes(t)) \n    return { prompt: presetB, type: 'B' };\n  if (['C', '3', 'PROMPTC', 'PRESET3', 'แบบที่C', 'แบบที่3'].includes(t)) \n    return { prompt: presetC, type: 'C' };\n  \n  // 🆕 ถ้าไม่ตรงกับ A/B/C → ถือว่าเป็น D\n  return { prompt: raw, type: 'CUSTOM' };\n}\n\n// 🧾 ดึงข้อมูลทั้งหมดจาก node ก่อนหน้า\nconst input = $input.all();\n\n// 🔁 ประมวลผลแต่ละรายการ\nreturn input.map(item => {\n  const { prompt: finalPrompt, type: presetType } = resolvePrompt(item.json.prompt);\n\n  return {\n    json: {\n      ...item.json,\n      finalPrompt,\n      presetType, // เพิ่มประเภทไว้ด้วย เช่น A/B/C/D\n    },\n    binary: item.binary, // ✅ ส่งต่อ binary เช่นภาพหรือไฟล์\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        352,
+        2928
+      ],
+      "id": "8cbc552a-7d27-4979-9532-e04d1d397679",
+      "name": "เลือกรูปแบบข้อความพรีเซ็ต (Preset Prompt)",
+      "notesInFlow": true,
+      "notes": "ตรวจสอบ prompt จากผู้ใช้ ถ้าใส่ “1/2” → แปลงเป็นข้อความพรีเซ็ต"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "edit",
+        "prompt": "={{ $json.finalPrompt }}",
+        "images": {
+          "values": [
+            {}
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        608,
+        1968
+      ],
+      "id": "3d9e3bd3-cf8e-4a3c-bfe3-427934e69110",
+      "name": "Gemini: แก้ไขภาพตาม prompt",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "executeOnce": false,
+      "onError": "continueErrorOutput",
+      "notes": "ใช้โมเดล googleGemini เพื่อแก้ไขภาพตาม prompt"
+    },
+    {
+      "parameters": {
+        "operation": "binaryToPropery",
+        "binaryPropertyName": "edited",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        608,
+        1808
+      ],
+      "id": "f37d123c-b78c-49f2-acb1-22281d7191eb",
+      "name": "ดึงภาพที่ประมวลผลแล้ว (Binary → Property)",
+      "notes": "แปลง output จาก Gemini ให้เป็น binary ที่พร้อมส่งออก"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"status\": 200,\n  \"message\": \"ประมวลผลสำเร็จ\",\n  \"data\": \"{{ $json.data }}\"\n}\n",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1632,
+        1728
+      ],
+      "id": "f8c24cdf-6715-4783-8de8-87495fca36df",
+      "name": "ตอบกลับภาพที่แก้ไขแล้วให้ผู้ใช้",
+      "notes": "ส่งผลลัพธ์กลับไปยัง webhook (รวม prompt และภาพที่แก้ไขแล้ว)"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"status\": 500,\n  \"message\": \"Invalid response format from Gemini API\"\n}\n",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1056,
+        1728
+      ],
+      "id": "0ac69453-5b65-4bf3-97df-e70e6458081a",
+      "name": "ตอบกลับภาพที่แก้ไขแล้วให้ผู้ใช้1",
+      "notes": "ส่งผลลัพธ์กลับไปยัง webhook (รวม prompt และภาพที่แก้ไขแล้ว)"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -1088,
+        2144
+      ],
+      "id": "cb721aeb-d73a-4a5d-b569-ff2942d027e3",
+      "name": "วนประมวลผลแต่ละภาพ (Batch)1",
+      "notes": "ใช้ประมวลผลหลายรายการของภาพพร้อมกัน"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "n8n_gemini_image_upload_log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 624067813,
+          "mode": "list",
+          "cachedResultName": "ชีต2",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=624067813"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "timestamp": "={{ new Date().toLocaleString('th-TH', {    timeZone: 'Asia/Bangkok',    year: 'numeric',    month: '2-digit',    day: '2-digit',    hour: '2-digit',    minute: '2-digit',    hour12: false  }) }}",
+            "user_id": "={{ $json.body.user_id }}",
+            "api_key": "={{ $json.body.api_key }}",
+            "action": "={{ $json.body.action }}",
+            "prompt_mode": "={{ $json.body.prompt_mode }}",
+            "finalPrompt": "={{ $json.body.finalPrompt }}",
+            "status": "={{ $json.body.status }}",
+            "file_output": "={{$json.body.webViewLink}}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "api_key",
+              "displayName": "api_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "prompt_mode",
+              "displayName": "prompt_mode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "finalPrompt",
+              "displayName": "finalPrompt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "file_output",
+              "displayName": "file_output",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -512,
+        2160
+      ],
+      "id": "e264d57b-c5e3-44c0-a6f4-9dc27a16e7b2",
+      "name": "อัปเดตlog",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/log",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "user_id",
+              "value": "={{ $('เงื่อนไข: ผ่านหรือไม่ผ่านการตรวจสอบ').item.json.user_id }}"
+            },
+            {
+              "name": "api_key",
+              "value": "={{ $json.api_key }}"
+            },
+            {
+              "name": "action",
+              "value": "edit_image"
+            },
+            {
+              "name": "prompt_mode",
+              "value": "={{ $json.presetType }}"
+            },
+            {
+              "name": "status",
+              "value": "start"
+            },
+            {
+              "name": "finalPrompt",
+              "value": "={{ $json.finalPrompt }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1072,
+        2944
+      ],
+      "id": "004e5b3a-f179-49a3-9f05-887c03f5883a",
+      "name": "log"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/log",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "user_id",
+              "value": "={{ $('เงื่อนไข: ผ่านหรือไม่ผ่านการตรวจสอบ').item.json.user_id }}"
+            },
+            {
+              "name": "api_key",
+              "value": "={{ $('แยกข้อมูล & ตรวจสอบ Header').item.json.key }}"
+            },
+            {
+              "name": "action",
+              "value": "edit_image"
+            },
+            {
+              "name": "prompt_mode",
+              "value": "={{ $('เลือกรูปแบบข้อความพรีเซ็ต (Preset Prompt)').item.json.presetType }}"
+            },
+            {
+              "name": "status",
+              "value": "success"
+            },
+            {
+              "name": "finalPrompt",
+              "value": "={{ $('เลือกรูปแบบข้อความพรีเซ็ต (Preset Prompt)').item.json.finalPrompt }}"
+            },
+            {
+              "name": "webViewLink",
+              "value": "={{ $json.webViewLink }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1392,
+        2768
+      ],
+      "id": "f1a476c6-535d-4dae-a594-6443a7ecee5d",
+      "name": "log1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/log",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "user_id",
+              "value": "={{ $('เงื่อนไข: ผ่านหรือไม่ผ่านการตรวจสอบ').item.json.user_id }}"
+            },
+            {
+              "name": "api_key",
+              "value": "={{ $('แยกข้อมูล & ตรวจสอบ Header').item.json.key }}"
+            },
+            {
+              "name": "action",
+              "value": "edit_image"
+            },
+            {
+              "name": "prompt_mode",
+              "value": "={{ $json.prompt }}"
+            },
+            {
+              "name": "status",
+              "value": "={{ $json.message }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1392,
+        2928
+      ],
+      "id": "77d2a0c8-c6f2-4832-9d6e-6ad202dd9567",
+      "name": "log-error"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/log",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "user_id",
+              "value": "={{ $('เงื่อนไข: ผ่านหรือไม่ผ่านการตรวจสอบ').item.json.user_id }}"
+            },
+            {
+              "name": "api_key",
+              "value": "={{ $('เลือกรูปแบบข้อความพรีเซ็ต (Preset Prompt)').item.json.api_key }}"
+            },
+            {
+              "name": "prompt_mode",
+              "value": "={{ $('เลือกรูปแบบข้อความพรีเซ็ต (Preset Prompt)').item.json.prompt }}"
+            },
+            {
+              "name": "status",
+              "value": "error: Invalid response format from Gemini API"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1072,
+        2752
+      ],
+      "id": "844b6490-ceb3-42fe-b85b-f5e7ba8e7d61",
+      "name": "log-error1",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1648,
+        1936
+      ],
+      "id": "533a8288-772f-4a6f-aedc-76fe92b5913e",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "content": "## เรียกใช้🟢 WEBHOOK สำหรับ LOG  \n📥 จุดส่งข้อมูล Log ไปยังกระบบหลัก  \nใช้สำหรับบันทึก Log การใช้งานจาก Workflow หลัก (AI Image Edit)\n\n**Endpoint:** `/webhook/log`  \nหรือ  \n`https://your-n8n-instance.app.n8n.cloud/webhook/log`\n\n> รองรับการรับข้อมูล: user_id, api_key, action, prompt_mode, status, finalPrompt\n",
+        "height": 976,
+        "width": 1088
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        896,
+        2512
+      ],
+      "id": "0646696f-617f-4424-b76d-9c944a8fcc8c",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/uploadfile",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "user",
+              "value": "={{ $('เงื่อนไข: ผ่านหรือไม่ผ่านการตรวจสอบ').item.json.user_id }}"
+            },
+            {
+              "name": "task",
+              "value": "=TASK_{{ $('เลือกรูปแบบข้อความพรีเซ็ต (Preset Prompt)').item.json.presetType }}"
+            },
+            {
+              "name": "file",
+              "value": "={{ $json.data }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1264,
+        1152
+      ],
+      "id": "5dae5c08-67da-4901-9815-8b0c030a02b4",
+      "name": "uploadfile",
+      "alwaysOutputData": false,
+      "executeOnce": false,
+      "retryOnFail": false
+    },
+    {
+      "parameters": {
+        "content": "## WEBHOOK สำหรับ LOG\ncopy url webhook",
+        "height": 896,
+        "width": 1200
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -2592,
+        1632
+      ],
+      "id": "98adc4f3-68eb-4a62-ba29-c38b251e99a4",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## WEBHOOK สำหรับ LOG\ncopy url webhook",
+        "height": 896,
+        "width": 1968,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1168,
+        1600
+      ],
+      "id": "2d7c4921-d8cf-4dc7-b14a-e8a6977eff4d",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## WEBHOOK สำหรับ LOG\ncopy url webhook",
+        "height": 896,
+        "width": 1280,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        880,
+        1600
+      ],
+      "id": "9a854596-2c31-4cc0-a6bf-f69cf20b1f6c",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "log",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -2304,
+        2144
+      ],
+      "id": "1e9b965d-7662-4caf-a30e-3eda27162d8c",
+      "name": "## 🟢 WEBHOOK สำหรับ LOG",
+      "webhookId": "REPLACE_WITH_YOUR_WEBHOOK_ID"
+    },
+    {
+      "parameters": {
+        "content": "🧠 สำหรับลูกค้า / ผู้ใช้งาน Workflow นี้\n📌 จุดที่สามารถเปลี่ยน ข้อความ Prompt ได้\n\nNode: “เลือกรูปแบบข้อความพรีเซ็ต (Preset Prompt)”\n\n// 🧩 ตัวอย่างพรีเซ็ตข้อความ (ลูกค้าสามารถแก้ไขได้เอง)\nconst presetA = 'Make the image look like a professional studio portrait. Improve lighting, add soft shadows, enhance clarity and natural skin tones. Keep background clean and slightly blurred.';\nconst presetB = 'Transform the image into a fantasy-style scene. Add glowing particles, vibrant colors, and cinematic lighting. Maintain the main subject but change the atmosphere to magical or surreal.';\nconst presetC = 'Convert the image into an artistic painting style. Add brush texture, balanced tones, and enhance visual composition for a gallery-ready look.';\n\n🪄 สิ่งที่ลูกค้าทำได้\n\nแก้ไขข้อความใน presetA, presetB, presetC ให้ตรงกับสไตล์ที่ต้องการ\n\nหากต้องการเพิ่มพรีเซ็ตใหม่ (เช่น presetD)\n→ เพิ่มข้อความใหม่ในส่วนบน และเพิ่มตัวเลือกในฟังก์ชัน resolvePrompt() เช่น\n\nif (['D', '4', 'PROMPTD', 'PRESET4', 'แบบที่D', 'แบบที่4'].includes(t)) \n  return { prompt: presetD, type: 'D' };\n\n\nระบบจะเลือกพรีเซ็ตอัตโนมัติเมื่อผู้ใช้พิมพ์ค่าใดค่าหนึ่ง เช่น\n\nA หรือ แบบที่A → ใช้ presetA\n\nB หรือ แบบที่B → ใช้ presetB\n\nC หรือ แบบที่C → ใช้ presetC\n\nหรือพิมพ์ข้อความเอง → ระบบจะถือเป็น Custom Prompt",
+        "height": 848,
+        "width": 1456
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -736,
+        2544
+      ],
+      "id": "70c8aaae-53fa-4119-ab89-cf972d212c94",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## แก้ไข URLให้ใช้ 🟢 WEBHOOK สำหรับ Upload",
+        "height": 544,
+        "width": 1152
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        912,
+        928
+      ],
+      "id": "d746d255-a48f-46a0-b598-a0720b35c194",
+      "name": "Sticky Note5"
+    }
+  ],
+  "connections": {
+    "🟢 รับคำขอจากผู้ใช้ (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "แยกข้อมูล & ตรวจสอบ Header",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "แยกข้อมูล & ตรวจสอบ Header": {
+      "main": [
+        [
+          {
+            "node": "ค้นหา API key ใน Google Sheet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "จัดเตรียมข้อมูล prompt และ binary สำหรับประมวลผล",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ค้นหา API key ใน Google Sheet": {
+      "main": [
+        [
+          {
+            "node": "ตรวจสอบสิทธิ์การใช้งาน API key",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ตรวจสอบสิทธิ์การใช้งาน API key": {
+      "main": [
+        [
+          {
+            "node": "เงื่อนไข: ผ่านหรือไม่ผ่านการตรวจสอบ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "เงื่อนไข: ผ่านหรือไม่ผ่านการตรวจสอบ": {
+      "main": [
+        [
+          {
+            "node": "อัปเดตจำนวนการใช้งานใน Google Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "log-error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "อัปเดตจำนวนการใช้งานใน Google Sheet": {
+      "main": [
+        [
+          {
+            "node": "รวมข้อมูล Key + Prompt + Binary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "จัดเตรียมข้อมูล prompt และ binary สำหรับประมวลผล": {
+      "main": [
+        [
+          {
+            "node": "รวมข้อมูล Key + Prompt + Binary",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "รวมข้อมูล Key + Prompt + Binary": {
+      "main": [
+        [
+          {
+            "node": "วนประมวลผลแต่ละภาพ (Batch)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "วนประมวลผลแต่ละภาพ (Batch)": {
+      "main": [
+        [
+          {
+            "node": "ดึงภาพที่ประมวลผลแล้ว (Binary → Property)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "เลือกรูปแบบข้อความพรีเซ็ต (Preset Prompt)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "เลือกรูปแบบข้อความพรีเซ็ต (Preset Prompt)": {
+      "main": [
+        [
+          {
+            "node": "Gemini: แก้ไขภาพตาม prompt",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini: แก้ไขภาพตาม prompt": {
+      "main": [
+        [
+          {
+            "node": "วนประมวลผลแต่ละภาพ (Batch)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "log-error1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ดึงภาพที่ประมวลผลแล้ว (Binary → Property)": {
+      "main": [
+        [
+          {
+            "node": "uploadfile",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "วนประมวลผลแต่ละภาพ (Batch)1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "อัปเดตlog",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "อัปเดตlog": {
+      "main": [
+        [
+          {
+            "node": "วนประมวลผลแต่ละภาพ (Batch)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "log1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "log-error": {
+      "main": [
+        [
+          {
+            "node": "ตอบกลับเมื่อไม่ผ่านการตรวจสอบ (403)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "log-error1": {
+      "main": [
+        [
+          {
+            "node": "ตอบกลับภาพที่แก้ไขแล้วให้ผู้ใช้1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "ตอบกลับภาพที่แก้ไขแล้วให้ผู้ใช้",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "uploadfile": {
+      "main": [
+        [
+          {
+            "node": "log1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "## 🟢 WEBHOOK สำหรับ LOG": {
+      "main": [
+        [
+          {
+            "node": "วนประมวลผลแต่ละภาพ (Batch)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": ""
+  }
+}
